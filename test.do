@@ -1,7 +1,4 @@
-///对于无法运行的命令，可能是没有安装外部命令，首先运行ssc install 命令名，例如:ssc install reghdfe 或findit 命令名
 
-///数据来源：中国城市统计年鉴、中国区域统计年鉴、中国统计年鉴
-***变量定义
 gen energye=超效率CCR
 gen energyer=超效率SBM
 gen lgdp=log( 地区生产总值万元 )
@@ -37,17 +34,14 @@ gen er2=log( 工业烟尘去除量吨 )
 gen er3=log( 生活污水处理率 )
 
 
-***数据调用
-use "C:\Users\lszcj\Desktop\论文\2.dta",clear
-
-***描述性统计
+***Descriptive Statistics
 outreg2 using 123.doc, replace sum(log) keep(energye policy lpergdp popud stru energyp industry edu tech fin dig eu er)
 shellout using `"123.doc"' 
 
-***均值差异检验
+*** Mean Difference Test 
 logout, save(Tab2_corr) word replace: ttable2 energye lpergdp popud stru energyp industry edu tech fin dig eu er, by(policy) 
 
-***平行趋势检验
+***Parallel Trend Test
 gen event=year-2014
 forvalues i=8(-1)1{
   gen pre`i'=(event==-`i'& treat==1)
@@ -61,7 +55,7 @@ reghdfe energye  pre* current post* lpergdp popud stru energyp industry edu tech
 est sto reg
 coefplot reg,keep(pre* current post*) vertical recast(connect) yline(0) xline(8,lp(dash)) levels(90)
 
-***基准回归
+***benchmark Regression
 reg energye policy,cluster(citycode)
 outreg2 using 123.doc,replace  bdec(4) tdec(3) ctitle(y)
 shellout using `"123.doc"'
@@ -74,24 +68,21 @@ reghdfe energye policy lpergdp popud stru energyp industry edu tech fin dig eu e
 outreg2 using 123.doc,replace  bdec(4) tdec(3) ctitle(y)
 shellout using `"123.doc"'
 
-***稳健性检验
-**缩尾处理
-use "C:\Users\lszcj\Desktop\论文\2.dta",clear
+***Robustness Test
+**Winsorize
 winsor2 energye lpergdp popud stru energyp industry edu tech fin dig eu er, cuts(1 99) replace
 reghdfe energye policy lpergdp popud stru energyp industry edu tech fin dig eu er ,absorb(citycode year) cluster(citycode)
 outreg2 using 123.doc,replace  bdec(4) tdec(3) ctitle(y)
 shellout using `"123.doc"'
 
-**缩短样本期（排除covid19影响）
-use "C:\Users\lszcj\Desktop\论文\2.dta",clear
+**Shorten The Period
 drop if year==2020
 drop if year==2021
 reghdfe energye policy lpergdp popud stru energyp industry edu tech fin dig eu er ,absorb(citycode year) cluster(citycode)
 outreg2 using 123.doc,replace  bdec(4) tdec(3) ctitle(y)
 shellout using `"123.doc"'
 
-**剔除直辖市
-use "C:\Users\lszcj\Desktop\论文\2.dta",clear
+**Exclude Municipality Directly Under The Central Government
 drop if citycode==110000
 drop if citycode==310000
 drop if citycode==120000
@@ -100,14 +91,12 @@ reghdfe energye policy lpergdp popud stru energyp industry edu tech fin dig eu e
 outreg2 using 123.doc,replace  bdec(4) tdec(3) ctitle(y)
 shellout using `"123.doc"'
 
-**替换被解释变量
-use "C:\Users\lszcj\Desktop\论文\2.dta",clear
+**Replace The Explained Variable
 reghdfe energyer policy lpergdp popud stru energyp industry edu tech fin dig eu er ,absorb(citycode year) cluster(citycode)
 outreg2 using 123.doc,replace  bdec(4) tdec(3) ctitle(y)
 shellout using `"123.doc"'
 
-**psm-did（倾向得分匹配双重差分）
-use "C:\Users\lszcj\Desktop\论文\2.dta",clear
+**psm-did
 set  seed 0000
 gen  norvar_1 = rnormal()
 sort norvar_1
@@ -118,8 +107,7 @@ reghdfe energye policy lpergdp popud stru energyp industry edu tech fin dig eu e
 outreg2 using 123.doc,replace  bdec(4) tdec(3) ctitle(y)
 shellout using `"123.doc"'
 
-**安慰剂检验
-use "C:\Users\lszcj\Desktop\论文\2.dta",clear
+**Permutation Test
 set seed 223 
   forvalue i = 1/1000 {
           use "C:\Users\lszcj\Desktop\论文\2.dta",clear
@@ -155,36 +143,33 @@ kdensity b_did
 
 kdensity tvalue
 
-**合成双重差分法
-use "C:\Users\lszcj\Desktop\论文\2.dta",clear
+**Synthetic DID
 xtset citycode year
 xtbalance ,range(2006 2021)
 carryforward lpergdp popud stru energyp industry edu tech fin dig eu er ,replace
 sdid energye citycode year policy , vce(bootstrap) seed(123) covariates( lpergdp popud stru energyp industry edu tech fin dig eu er  ) graph 
 
-***机制检验
-**绿色创新
-use "C:\Users\lszcj\Desktop\论文\2.dta",clear
+***Mechanism Analysis 
+
+** Green Innovation
+
 reghdfe lgp policy lpergdp popud stru energyp industry edu tech fin dig eu er ,absorb(citycode year) cluster(citycode)
 outreg2 using 123.doc,replace  bdec(4) tdec(3) ctitle(y)
 shellout using `"123.doc"'
 
 
-**融资约束
+**Financing Constraints
 
-use "C:\Users\lszcj\Desktop\论文\07_firm.dta", clear
  reghdfe FC指数 policy  lpergdp popud stru energyp industry edu tech fin dig eu er  ,absorb(stkcd year) cluster(citycode)
 outreg2 using 123.doc,replace  bdec(4) tdec(3) ctitle(y)
 shellout using `"123.doc"'
 
-***异质性检验
+***Heterogeneity Analysis
 
-**产业结构异质性
-use "C:\Users\lszcj\Desktop\论文\2.dta",clear
+** Industrial Structure
 egen med=median(stru3)
 gen group=1 if stru3>=med
 replace group=0 if stru3<med
-//按第二产业人数占比分组，第二产业人数多的group取值为1(工业型城市)，人数少的取值为0
 reghdfe energye policy  lpergdp popud stru energyp industry edu tech fin dig eu er if group==1,absorb(citycode year) cluster(citycode) 
 outreg2 using 123.doc,replace  bdec(4) tdec(3) ctitle(y)
 shellout using `"123.doc"'
@@ -194,8 +179,7 @@ outreg2 using 123.doc,replace  bdec(4) tdec(3) ctitle(y)
 shellout using `"123.doc"'
 ///policy在group=1显著，group=0不显著。第二产业越发达的城市，新能源政策效果越好。这说明新能源政策更适用于工业型城市。
 
-**技术水平异质性
-use "C:\Users\lszcj\Desktop\论文\2.dta",clear
+**Technological Level
 egen med=median(tech1)
 gen group=1 if tech1>=med
 replace group=0 if tech1<med
@@ -207,5 +191,5 @@ shellout using `"123.doc"'
 reghdfe energye policy  lpergdp popud stru energyp industry edu tech fin dig eu er if group==0,absorb(citycode year) cluster(citycode) 
 outreg2 using 123.doc,replace  bdec(4) tdec(3) ctitle(y)
 shellout using `"123.doc"'
-///policy在group=1显著，group=0不显著。技术发达的城市，新能源政策效果越好。这说明新能源政策的效果依赖于城市的技术发展。
+
 
